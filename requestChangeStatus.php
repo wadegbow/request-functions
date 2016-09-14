@@ -17,13 +17,16 @@ switch ($context) {
 		break;
 }
 
+//configure the array being sent to database
 $toDB['Approval Status'] = $context;
 $toDB['Surplus Credit'] = isset($_POST['credit']) ? $_POST['credit'] : '';
 $toDB['Submitted_Date'] = $date;
 $toDB['Service_Date'] = $date;
 
+//create connection to fm
 $fm = new FileMaker('Recycling', FM_IP, FM_USERNAME, FM_PASSWORD);
 
+//if the context is duplication
 if ($context == 'duplicate') {
 	$findCommand =& $fm->newFindCommand('web_request_for_service');
 	$findCommand->addFindCriterion('RecID', $recID);
@@ -41,16 +44,17 @@ if ($context == 'duplicate') {
 	} else {
 		$fromDB['type'] = 'Recycle';
 	}
-	
 } else {
 	$fromDB = null;
 	
+	//change the status of the request
 	$newEdit =& $fm->newEditCommand('web_request_for_service', $recID, $toDB);
 	$result = $newEdit->execute();
 	$newPerformScript = $fm->newPerformScriptCommand('web_request_for_service', 'Web_SetRequestActionDates', $id);
 	$scriptResult = $newPerformScript->execute();
 }
-	
+
+//check for errors
 if (FileMaker::isError($result)) {
     $response['Error'] = $context;
 	$response = json_encode($response);

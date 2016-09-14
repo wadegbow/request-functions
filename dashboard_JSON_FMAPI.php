@@ -6,7 +6,6 @@ require_once('..\..\filemaker_api\server_data_request.php');
 require_once('..\..\filemaker_api\FileMaker.php');
 error_reporting(E_ALL);
 session_start();
-//include('includes/top.php');
 
     //create new filemaker connection
     $fm = new FileMaker('Recycling', FM_IP, FM_USERNAME, FM_PASSWORD);
@@ -47,6 +46,7 @@ session_start();
         }
 
         if (strlen($currentCustomer['id']) > 0) {
+            //get the web requests associated with the customer
             $findCommand = $fm->newFindCommand('web_request_for_service');
             $findCommand->addFindCriterion('_Customer_ID', $currentCustomer['id']);
             $findCommand->addSortRule('Request Created Date', 1, FILEMAKER_SORT_DESCEND);
@@ -54,6 +54,7 @@ session_start();
             $findCommand->setRange(0,30);
             $result = $findCommand->execute();
 
+            //if the customer has requests, get the actions
             if (FileMaker::isError($result)) {
                 $previousRequests = null;
             } else {
@@ -62,8 +63,11 @@ session_start();
                 $i = 0;
                 $previousRequests = array();
 
+                //configure statuses
                 $preSubmit = array('initiated web request');
                 $postSubmit = array('in progress', 'approved', 'pending');
+
+                //loop through the list of requests to setup the json
                 foreach($requestsList as $request) {
                     $id = $request->getField('_Request_ID');
                     $previousRequests[$i]['id'] = $request->getField('_Request_ID');
@@ -76,12 +80,14 @@ session_start();
                     $previousRequests[$i]['type'] = $request->getField('RequestType');
                     $previousRequests[$i]['popover'] = '';
 
+                    //change internal lingo to public facing lingo
                     if($previousRequests[$i]['type'] != 'PURF') {
                         $previousRequests[$i]['type'] = 'Recycle';
                     } else {
                         $previousRequests[$i]['type'] = 'Surplus';
                     }
 
+                    //convert internal statuses to public facing statuses
                     if(in_array($previousRequests[$i]['status'], $preSubmit)) {
                         $previousRequests[$i]['displayStatus'] = 'not submitted';
                     } else if (in_array($previousRequests[$i]['status'], $postSubmit)) {
@@ -96,17 +102,16 @@ session_start();
                     $actionFindCommand->addFindCriterion('_Request_ID', $previousRequests[$i]['id']);
                     $actionResult = $actionFindCommand->execute();
 
+                    //if the request has actions add them to the request
                     if (FileMaker::isError($actionResult)) {
-                        //echo "Error: " . $result->getMessage() . "\n";
                         $actions = null;
                         $previousRequests[$i]['popover'] .= 'This request has no actions.';
                     } else {
                         $count = $actionResult->getFoundSetCount();
                         $requestActionList = $actionResult->getRecords();
 
+                        //loop through requests to get the list of actions for each request
                         $n = 0;
-                        //$actions = array();
-
                         foreach($requestActionList as $actionList) {
                             $actions[$n]['record_id'] = $actionList->getField('_Record_ID');
                             $actions[$n]['request_id'] = $actionList->getField('_Request_ID');
@@ -117,6 +122,7 @@ session_start();
                             $actions[$n]['quantity'] = $actionList->getField('Quantity') + 0;
                             $actions[$n]['instructions'] = $actionList->getField('Service Instructions');
 
+                            //format a tooltip for each request
                             $previousRequests[$i]['popover'] .= isset($actions[$n]['service']['name']) ? $actions[$n]['service']['name'] : '';
                             $previousRequests[$i]['popover'] .= ': ';
                             $previousRequests[$i]['popover'] .= isset($actions[$n]['container']['name']) ? $actions[$n]['container']['name'] : '';
@@ -131,25 +137,24 @@ session_start();
                     }
 
                     $previousRequests[$i]['actions'] = isset($actions) ? $actions : null;
-
                     $i++;
                 }
             }
 
+            //create a new find to get the accounts associated with the customer
             $findCommand = $fm->newFindCommand('web_customer_account');
             $findCommand->addFindCriterion('_Customer_ID', $currentCustomer['id']);
             $findCommand->addFindCriterion('Status', 'Yes');
             $result = $findCommand->execute();
 
             if (FileMaker::isError($result)) {
-                //echo $result->getMessage();
-
                 $accounts = null;
             } else {
                 $requestAccountList = $result->getRecords();
 
                 $invalid_prefix =  array('AA', 'AB', 'AM', 'AN', 'AR', 'AS', 'AU', 'DN', 'DS', 'DT', 'GV', 'PN', 'XA', 'XH', 'XT');
 
+                //loop through the accounts setting up the json
                 $i = 0;
                 foreach($requestAccountList as $accountList) {
                     $accounts[$i]['request_id'] = $accountList->getField('_Request_ID');
@@ -172,6 +177,7 @@ session_start();
             }
         }
 
+        //encode the arrays into json
         $currentCustomer = json_encode($currentCustomer);
         $previousRequests = json_encode($previousRequests, JSON_NUMERIC_CHECK);
         $accounts = json_encode($accounts);

@@ -27,6 +27,7 @@ if ($edit == true) {
 
 }
 
+//check for errors
 if (FileMaker::isError($result)) {
     $response['Error'] = $recID;
 	$response = json_encode($response);

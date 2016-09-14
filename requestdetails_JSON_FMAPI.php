@@ -14,15 +14,14 @@ $findCommand->addFindCriterion('_Request_ID', $_GET['id']);
 $result = $findCommand->execute();
 
 if (FileMaker::isError($result)) {
-    //echo "Error: " . $result->getMessage() . "\n";
     $actions = null;
 } else {
 	$count = $result->getFoundSetCount();
 	$requestActionList = $result->getRecords();
 
+	//loop through the actions associated with the request
+	//setup json
 	$i = 0;
-	//$actions = array();
-
 	foreach($requestActionList as $actionList) {
 		$actions[$i]['record_id'] = $actionList->getField('_Record_ID');
 		$actions[$i]['request_id'] = $actionList->getField('_Request_ID');
@@ -44,7 +43,6 @@ $findCommand->addFindCriterion('_Request_ID', $_GET['id']);
 $result = $findCommand->execute();
 
 if (FileMaker::isError($result)) {
-    //echo "Error: " . $result->getMessage() . "\n";
 	$accounts = null;
 } else {
 	$count = $result->getFoundSetCount();

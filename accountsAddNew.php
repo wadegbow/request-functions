@@ -10,6 +10,7 @@ $toDB['Sub Account'] = isset($_POST['subAccount']) ? $_POST['subAccount'] : '';
 
 $invalid_prefix =  array('AA', 'AB', 'AM', 'AN', 'AR', 'AS', 'AU', 'DN', 'DS', 'DT', 'GV', 'PN', 'XA', 'XH', 'XT');
 
+//add the new account to the database
 $newAdd =& $fm->newAddCommand('web_customer_account', $toDB);
 $result = $newAdd->execute();           
 
@@ -21,6 +22,7 @@ if (FileMaker::isError($result)) {
 
 	$requestAccountList = current($result->getRecords());
 
+	//organize the newly added account
 	$i = 0;
 	foreach($requestAccountList as $accountList) {
 		$accounts[$i]['request_id'] = $accountList->getField('_Request_ID');
@@ -41,6 +43,7 @@ if (FileMaker::isError($result)) {
 		$i++;
 	} 
 
+	//respond with the account encoded in json
 	$response['Success'] = $accounts[0];
 	$response = json_encode($response);
 	echo $response;
